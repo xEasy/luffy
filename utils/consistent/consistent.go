@@ -1,4 +1,4 @@
-package utils
+package consistent
 
 import (
 	"errors"
@@ -9,8 +9,8 @@ import (
 	"sync"
 )
 
-// Consistent hashing
-type Consistent struct {
+// Hash hashing
+type Hash struct {
 	sync.RWMutex                          // map RWMutex lock
 	hashSortNodes     []uint32            // sorted hash virtual nodes
 	circle            map[uint32]string   // virtual nodes info
@@ -19,11 +19,11 @@ type Consistent struct {
 	virtualNodesCount int
 }
 
-func NewConsistent() *Consistent {
-	return &Consistent{}
+func NewConsistent() *Hash {
+	return &Hash{}
 }
 
-func (c *Consistent) Add(node string, virtualNodeCount int) error {
+func (c *Hash) Add(node string, virtualNodeCount int) error {
 	if node == "" {
 		return nil
 	}
@@ -64,7 +64,7 @@ func (c *Consistent) Add(node string, virtualNodeCount int) error {
 	return nil
 }
 
-func (c *Consistent) GetNode(key string) string {
+func (c *Hash) GetNode(key string) string {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -74,7 +74,7 @@ func (c *Consistent) GetNode(key string) string {
 	return c.circle[i]
 }
 
-func (c *Consistent) Remove(node string) error {
+func (c *Hash) Remove(node string) error {
 	if node == "" {
 		return nil
 	}
@@ -111,11 +111,11 @@ func (c *Consistent) Remove(node string) error {
 	return nil
 }
 
-func (c *Consistent) hashKey(key string) uint32 {
+func (c *Hash) hashKey(key string) uint32 {
 	return crc32.ChecksumIEEE([]byte(key))
 }
 
-func (c *Consistent) getPosition(hash uint32) uint32 {
+func (c *Hash) getPosition(hash uint32) uint32 {
 	nodesLen := len(c.hashSortNodes)
 	i := sort.Search(nodesLen, func(i int) bool {
 		return c.hashSortNodes[i] >= hash

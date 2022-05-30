@@ -8,6 +8,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/xeays/luffy/utils"
 	"github.com/xeays/luffy/xiface"
 )
@@ -89,7 +90,15 @@ func (conn *Connection) read() error {
 
 	msg.SetData(msgData)
 
+	var reqID string
+	reqUUID, err := uuid.NewRandom()
+	if err != nil {
+		reqID = "fakeID"
+	} else {
+		reqID = reqUUID.String()
+	}
 	req := Request{
+		id:   reqID,
 		msg:  msg,
 		conn: conn,
 	}

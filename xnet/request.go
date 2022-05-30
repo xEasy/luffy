@@ -3,8 +3,13 @@ package xnet
 import "github.com/xeays/luffy/xiface"
 
 type Request struct {
+	id   string
 	conn xiface.IConnection
 	msg  xiface.IMessage
+}
+
+func (r *Request) GetID() string {
+	return r.id
 }
 
 func (r *Request) GetData() []byte {

@@ -2,36 +2,52 @@ package xnet
 
 import (
 	"fmt"
+	"strconv"
+	"sync"
 
 	"github.com/xeays/luffy/utils"
+	"github.com/xeays/luffy/utils/consistent"
 	"github.com/xeays/luffy/workerpool"
 	"github.com/xeays/luffy/xiface"
 )
 
 type MsgHandler struct {
+	once           sync.Once
 	Apis           map[uint32]xiface.IRouter
 	PoolSize       uint32
 	WorkerPoolSize uint32
 	MsgPools       []*workerpool.Pool
+	consistent     *consistent.Hash
 }
 
 func (mh *MsgHandler) StartWorkPool() {
-	if mh.MsgPools == nil {
-		mh.MsgPools = make([]*workerpool.Pool, mh.WorkerPoolSize)
-	}
+	mh.once.Do(func() {
+		if mh.MsgPools == nil {
+			mh.MsgPools = make([]*workerpool.Pool, mh.WorkerPoolSize)
+		}
 
-	for i := 0; i < int(mh.PoolSize); i++ {
-		poolName := fmt.Sprintf("LuffyMsgPool:%d", i)
-		pool := workerpool.NewWorkPool(poolName, mh.WorkerPoolSize, utils.GlobalObject.MaxWorkerTaskLen)
-		mh.MsgPools[i] = pool
-		pool.Start()
-	}
+		if mh.consistent == nil {
+			mh.consistent = consistent.NewConsistent()
+		}
+
+		for i := 0; i < int(mh.PoolSize); i++ {
+			poolName := fmt.Sprintf("LuffyMsgPool:%d", i)
+			pool := workerpool.NewWorkPool(poolName, mh.WorkerPoolSize, utils.GlobalObject.MaxWorkerTaskLen)
+			mh.MsgPools[i] = pool
+			mh.consistent.Add(strconv.Itoa(i), 100)
+			pool.Start()
+		}
+	})
 }
 
 // SendMsgToTaskQueue send msg taks to taskqueue by request id using id/mod
 func (mh *MsgHandler) SendMsgToTaskQueue(request xiface.IRequest) {
 	// each pool's worker pull task when free, all task in job queue
-	poolID := request.GetConnection().GetConnID() % mh.PoolSize
+	poolSID := mh.consistent.GetNode(request.GetID())
+	poolID, err := strconv.Atoi(poolSID)
+	if err != nil {
+		poolID = int(request.GetConnection().GetConnID() % mh.PoolSize)
+	}
 
 	fmt.Println("Add ConnID:", request.GetConnection().GetConnID(), ", requst msgID: ", request.GetMsgID(), " to workerID: ", poolID)
 
