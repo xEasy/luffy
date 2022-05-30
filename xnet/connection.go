@@ -181,9 +181,9 @@ func (conn *Connection) Stop() {
 	}
 
 	conn.isClosed = true
-	conn.Server.CallOnConnStop(conn)
 
-	// TODO run regieste stop callback func
+	// run regieste stop callback func
+	conn.Server.CallOnConnStop(conn)
 
 	// close tcp socket
 	conn.Conn.Close()
