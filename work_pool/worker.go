@@ -7,7 +7,7 @@ import (
 type Worker struct {
 	id       int
 	workPool *Pool
-	jobChan  chan Job
+	jobChan  chan *Job
 	stoped   chan bool
 }
 
@@ -15,7 +15,7 @@ func newWorker(pool *Pool, id int) *Worker {
 	return &Worker{
 		id:       id,
 		workPool: pool,
-		jobChan:  make(chan Job),
+		jobChan:  make(chan *Job),
 		stoped:   make(chan bool),
 	}
 }
@@ -39,7 +39,7 @@ func (w *Worker) start() {
 	}()
 }
 
-func (w *Worker) process(job Job) {
+func (w *Worker) process(job *Job) {
 	w.jobChan <- job
 }
 

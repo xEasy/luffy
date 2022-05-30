@@ -10,7 +10,7 @@ type WorkersChan chan *Worker
 type Pool struct {
 	size       uint32
 	wPool      WorkersChan
-	jobQueue   chan Job
+	jobQueue   chan *Job
 	dispatcher *Dispatcher
 
 	releaseLock    sync.Mutex
@@ -25,7 +25,7 @@ func NewWorkPool(poolSize uint32, maxJobSize uint32) *Pool {
 	pool := &Pool{
 		size:     poolSize,
 		wPool:    make(WorkersChan, poolSize),
-		jobQueue: make(chan Job, maxJobSize),
+		jobQueue: make(chan *Job, maxJobSize),
 		released: false,
 		started:  false,
 	}
@@ -33,7 +33,7 @@ func NewWorkPool(poolSize uint32, maxJobSize uint32) *Pool {
 }
 
 func (p *Pool) Enqueue(job JobFunc, args ...any) {
-	p.jobQueue <- Job{
+	p.jobQueue <- &Job{
 		ID:   "jobId", // TODO random JobID
 		Func: job,
 		Args: args,
@@ -101,7 +101,7 @@ func (wp *Pool) addWorker(worker *Worker) {
 	wp.wPool <- worker
 }
 
-func (p *Pool) pullJob() <-chan Job {
+func (p *Pool) pullJob() <-chan *Job {
 	return p.jobQueue
 }
 

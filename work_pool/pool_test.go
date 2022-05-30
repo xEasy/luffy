@@ -1,22 +1,18 @@
 package workerpool
 
 import (
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
-var job Job
 var counter int32
 
 func setup() {
 	counter = 0
-	job = Job{
-		ID: "12",
-		Func: func(args ...interface{}) {
-			atomic.CompareAndSwapInt32(&counter, counter, counter+2)
-		},
-	}
+	numCPUs := runtime.NumCPU()
+	runtime.GOMAXPROCS(numCPUs)
 }
 
 func TestNewPool(t *testing.T) {
@@ -67,7 +63,7 @@ func TestNewWorker(t *testing.T) {
 		ID:   "hello",
 		Func: callback,
 	}
-	worker.process(job)
+	worker.process(&job)
 
 	// wait for job done
 	<-wait
