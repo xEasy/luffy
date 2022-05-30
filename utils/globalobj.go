@@ -16,6 +16,9 @@ type GlobalObj struct {
 
 	MaxPacketSize uint32 // max data package
 	MaxConn       int    // max connections on current server
+
+	WorkerPoolSize   uint32 // max worker pool size
+	MaxWorkerTaskLen uint32 // task worker queue's max len
 }
 
 var GlobalObject *GlobalObj
@@ -41,6 +44,9 @@ func InitConfig() {
 
 		MaxPacketSize: 4096,
 		MaxConn:       12000,
+
+		WorkerPoolSize:   10,
+		MaxWorkerTaskLen: 1024,
 	}
 
 	GlobalObject.Reload()

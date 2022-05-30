@@ -27,7 +27,7 @@ func main() {
 func (r *PingRouter) Handle(request xiface.IRequest) {
 	fmt.Println("PingRouter is called")
 
-	err := request.GetTCPConnection().SendMsg(0, []byte("ping.. ping.. pong.. pong.."))
+	err := request.GetConnection().SendMsg(0, []byte("ping.. ping.. pong.. pong.."))
 	if err != nil {
 		fmt.Println("call back PingRouter err", err)
 	}
@@ -36,7 +36,7 @@ func (r *PingRouter) Handle(request xiface.IRequest) {
 func (r *BoomRouter) Handle(req xiface.IRequest) {
 	fmt.Println("PingRouter is called")
 
-	err := req.GetTCPConnection().SendMsg(1, []byte("boom boom boom boom.."))
+	err := req.GetConnection().SendMsg(1, []byte("boom boom boom boom.."))
 	if err != nil {
 		fmt.Println("call back PongRouter err", err)
 	}

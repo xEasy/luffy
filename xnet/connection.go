@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/xeays/luffy/utils"
 	"github.com/xeays/luffy/xiface"
 )
 
@@ -85,7 +86,11 @@ func (conn *Connection) StartReader() {
 			conn: conn,
 		}
 
-		go conn.MsgHandler.DoMsghandler(&req)
+		if utils.GlobalObject.WorkerPoolSize > 0 {
+			conn.MsgHandler.SendMsgToTaskQueue(&req)
+		} else {
+			go conn.MsgHandler.DoMsghandler(&req)
+		}
 	}
 }
 

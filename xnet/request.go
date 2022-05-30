@@ -15,6 +15,6 @@ func (r *Request) GetMsgID() uint32 {
 	return r.msg.GetMsgId()
 }
 
-func (r *Request) GetTCPConnection() xiface.IConnection {
+func (r *Request) GetConnection() xiface.IConnection {
 	return r.conn
 }

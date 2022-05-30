@@ -2,6 +2,6 @@ package xiface
 
 type IRequest interface {
 	GetData() []byte
-	GetTCPConnection() IConnection
+	GetConnection() IConnection
 	GetMsgID() uint32
 }

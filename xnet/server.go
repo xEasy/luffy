@@ -49,6 +49,10 @@ func (s *Server) Start() {
 		utils.GlobalObject.MaxPacketSize,
 	)
 	go func() {
+		// 1 start msgHandler workPool
+		s.MsgHandler.StartWorkPool()
+
+		// 2 get a tcp addr
 		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
 			fmt.Println("ResolveTCPAddr Fail with err: ", err)
