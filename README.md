@@ -1,6 +1,6 @@
 ## Luffy
 
-Luffy is an light weight TCP server, rewrite from [aceld/znix](https://github.com/aceld/zinx)
+Luffy is an light weight TCP server, rewrite inspire by [aceld/znix](https://github.com/aceld/zinx)
 
 ### Feature
 
