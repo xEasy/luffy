@@ -11,6 +11,7 @@ import (
 )
 
 type Connection struct {
+	Server       xiface.IServer
 	ConnID       uint32
 	Conn         *net.TCPConn
 	isClosed     bool
@@ -19,8 +20,9 @@ type Connection struct {
 	msgChan      chan []byte
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, msgHandler xiface.IMsgHandler) xiface.IConnection {
+func NewConnection(server xiface.IServer, conn *net.TCPConn, connID uint32, msgHandler xiface.IMsgHandler) xiface.IConnection {
 	c := &Connection{
+		Server:       server,
 		Conn:         conn,
 		ConnID:       connID,
 		isClosed:     false,
@@ -144,8 +146,12 @@ func (conn *Connection) Stop() {
 	// notify exit message subscriber
 	conn.ExitBuffChan <- true
 
-	// close exit channel
+	// remove conn from connManger
+	conn.Server.GetConnMgr().Remove(conn)
+
+	// close conn's channel
 	close(conn.ExitBuffChan)
+	close(conn.msgChan)
 }
 
 func (conn *Connection) GetTCPConnection() *net.TCPConn {

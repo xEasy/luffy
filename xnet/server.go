@@ -2,7 +2,6 @@
 package xnet
 
 import (
-	"errors"
 	"fmt"
 	"net"
 
@@ -11,11 +10,12 @@ import (
 )
 
 type Server struct {
-	Name       string
-	IPVersion  string
-	IP         string
-	Port       int
-	MsgHandler xiface.IMsgHandler
+	Name        string
+	IPVersion   string
+	IP          string
+	Port        int
+	MsgHandler  xiface.IMsgHandler
+	connManager xiface.IConManager
 }
 
 func NewServer(name string) xiface.IServer {
@@ -24,21 +24,13 @@ func NewServer(name string) xiface.IServer {
 	utils.GlobalObject.Reload()
 
 	return &Server{
-		Name:       utils.GlobalObject.Name,
-		IPVersion:  "tcp4",
-		IP:         utils.GlobalObject.Host,
-		Port:       utils.GlobalObject.TcpPort,
-		MsgHandler: NewMsgHandler(),
+		Name:        utils.GlobalObject.Name,
+		IPVersion:   "tcp4",
+		IP:          utils.GlobalObject.Host,
+		Port:        utils.GlobalObject.TcpPort,
+		MsgHandler:  NewMsgHandler(),
+		connManager: NewConnManager(),
 	}
-}
-
-func callbackToClient(conn *net.TCPConn, data []byte, cnt int) error {
-	fmt.Println("[conn handler] callbackToClient ...")
-	if _, err := conn.Write(data[:cnt]); err != nil {
-		fmt.Println("write back buf error: ", err)
-		return errors.New("callbackToClient error")
-	}
-	return nil
 }
 
 func (s *Server) Start() {
@@ -76,9 +68,16 @@ func (s *Server) Start() {
 				continue
 			}
 
-			// TODO close conn if cid greater than maxID
+			// close conn if cid greater than maxID
+			if s.connManager.Len() >= utils.GlobalObject.MaxConn {
+				conn.Close()
+				continue
+			}
 
-			dealConn := NewConnection(conn, cid, s.MsgHandler)
+			dealConn := NewConnection(s, conn, cid, s.MsgHandler)
+
+			// add client connection to connManager
+			s.connManager.Add(dealConn)
 
 			cid++
 
@@ -88,7 +87,9 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Stop() {
-	fmt.Println("Server Stoping")
+	fmt.Println("Server Stoping ...")
+	s.connManager.ClearConn()
+	fmt.Println("Server Stoped")
 }
 
 func (s *Server) Serve() {
@@ -98,4 +99,9 @@ func (s *Server) Serve() {
 func (s *Server) AddRouter(msgID uint32, router xiface.IRouter) {
 	s.MsgHandler.AddRouter(msgID, router)
 	fmt.Println("AddRouter succ! ")
+}
+
+// Get connection manager
+func (s *Server) GetConnMgr() xiface.IConManager {
+	return s.connManager
 }

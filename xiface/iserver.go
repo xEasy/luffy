@@ -13,4 +13,7 @@ type IServer interface {
 
 	// router func
 	AddRouter(msgID uint32, router IRouter)
+
+	// Get connection manager
+	GetConnMgr() IConManager
 }
