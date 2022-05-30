@@ -13,6 +13,7 @@ import (
 )
 
 type Connection struct {
+	mu         sync.Mutex
 	Server     xiface.IServer
 	ConnID     uint32
 	Conn       *net.TCPConn
@@ -146,7 +147,9 @@ func (conn *Connection) read() error {
 }
 
 func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	c.mu.Lock()
 	if c.isClosed == true {
+		c.mu.Unlock()
 		return errors.New("Connection closed when send msg")
 	}
 
@@ -159,6 +162,12 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 
 	// write to client throught msgChan
 	c.msgChan <- msg
+
+	/*
+		put here to prevent dead clock
+		cos stop() action will kill writer and block msgChan
+	*/
+	c.mu.Unlock()
 
 	return nil
 }
@@ -176,7 +185,10 @@ func (conn *Connection) Start() {
 }
 
 func (conn *Connection) Stop() {
+	conn.mu.Lock()
+
 	if conn.isClosed == true {
+		conn.mu.Unlock()
 		return
 	}
 
@@ -196,6 +208,9 @@ func (conn *Connection) Stop() {
 
 	// close conn's channel
 	close(conn.msgChan)
+
+	// unlock until close action done
+	conn.mu.Unlock()
 }
 
 func (conn *Connection) GetTCPConnection() *net.TCPConn {
