@@ -15,6 +15,7 @@ type Connection struct {
 	isClosed     bool
 	ExitBuffChan chan bool
 	MsgHandler   xiface.IMsgHandler
+	msgChan      chan []byte
 }
 
 func NewConnection(conn *net.TCPConn, connID uint32, msgHandler xiface.IMsgHandler) xiface.IConnection {
@@ -24,8 +25,26 @@ func NewConnection(conn *net.TCPConn, connID uint32, msgHandler xiface.IMsgHandl
 		isClosed:     false,
 		MsgHandler:   msgHandler,
 		ExitBuffChan: make(chan bool, 1),
+		msgChan:      make(chan []byte),
 	}
 	return c
+}
+
+func (c *Connection) StartWriter() {
+	fmt.Println("[Writer Goroutine is running...]")
+	defer fmt.Println(c.RemoteAddr().String(), " [conn Writer exit!]")
+
+	for {
+		select {
+		case data := <-c.msgChan:
+			if _, err := c.Conn.Write(data); err != nil {
+				fmt.Println("Send data err: ", err, " Conn Writer exit!")
+				return
+			}
+		case <-c.ExitBuffChan:
+			return
+		}
+	}
 }
 
 func (conn *Connection) StartReader() {
@@ -82,11 +101,9 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 		return errors.New("pack error msg")
 	}
 
-	if _, err := c.Conn.Write(msg); err != nil {
-		fmt.Println("write msg id ", msgId, " error ")
-		c.ExitBuffChan <- true
-		return errors.New("conn Write error")
-	}
+	// write to client throught msgChan
+	c.msgChan <- msg
+
 	return nil
 }
 
@@ -95,6 +112,8 @@ func (conn *Connection) Start() {
 
 	// create goroutinue to handle connection
 	go conn.StartReader()
+	// create goroutinue to write
+	go conn.StartWriter()
 
 	for {
 		select {
