@@ -11,6 +11,10 @@ import (
 
 type DataPack struct{}
 
+func NewDataPack() xiface.IDataPack {
+	return &DataPack{}
+}
+
 func (dp *DataPack) GetHeadLen() uint32 {
 	// Id uint32(4 bytes) + DataLen uint32(4 bytes)
 	return 8
