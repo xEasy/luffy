@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/xeays/luffy/utils"
 	"github.com/xeays/luffy/xiface"
 )
 
@@ -18,6 +19,10 @@ type Server struct {
 }
 
 func NewServer(name string) xiface.IServer {
+
+	utils.InitConfig()
+	utils.GlobalObject.Reload()
+
 	return &Server{
 		Name:      name,
 		IPVersion: "tcp4",
@@ -37,6 +42,11 @@ func callbackToClient(conn *net.TCPConn, data []byte, cnt int) error {
 
 func (s *Server) Start() {
 	fmt.Printf("[Luffy] Server Listening at IP: %s, Port: %d Starging \n", s.IP, s.Port)
+	fmt.Printf("[Luffy] Version: %s, MaxConn: %d, MaxPacketSize: %d",
+		utils.GlobalObject.Version,
+		utils.GlobalObject.MaxConn,
+		utils.GlobalObject.MaxPacketSize,
+	)
 	go func() {
 		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
