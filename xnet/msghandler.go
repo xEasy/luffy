@@ -1,6 +1,7 @@
 package xnet
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"sync"
@@ -31,7 +32,10 @@ func (mh *MsgHandler) StartWorkPool() {
 		}
 
 		for i := 0; i < int(mh.PoolSize); i++ {
-			poolName := fmt.Sprintf("LuffyMsgPool:%d", i)
+			buf := new(bytes.Buffer)
+			buf.WriteString("LuffyMsgPool:")
+			buf.WriteString(strconv.Itoa(i))
+			poolName := buf.String()
 			pool := workerpool.NewWorkPool(poolName, mh.WorkerPoolSize, utils.GlobalObject.MaxWorkerTaskLen)
 			mh.MsgPools[i] = pool
 			mh.consistent.Add(strconv.Itoa(i), 100)
