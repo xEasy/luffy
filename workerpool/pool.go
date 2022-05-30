@@ -22,6 +22,7 @@ type Pool struct {
 
 	started     bool
 	startedLock sync.Mutex
+	done        chan struct{}
 }
 
 func NewWorkPool(name string, poolSize uint32, maxJobSize uint32) *Pool {
@@ -32,8 +33,13 @@ func NewWorkPool(name string, poolSize uint32, maxJobSize uint32) *Pool {
 		jobQueue: make(chan *Job, maxJobSize),
 		released: false,
 		started:  false,
+		done:     make(chan struct{}),
 	}
 	return pool
+}
+
+func (p *Pool) Done() <-chan struct{} {
+	return p.done
 }
 
 func (p *Pool) Enqueue(job JobFunc, args ...any) {
@@ -110,6 +116,7 @@ func (p *Pool) Release() {
 	// 3 close workers chan
 	fmt.Printf("[WorkPool] - %s | colse wPool \n", p.Name)
 	close(p.wPool)
+	close(p.done)
 }
 
 func (wp *Pool) addWorker(worker *Worker) {
