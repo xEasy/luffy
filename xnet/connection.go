@@ -72,6 +72,7 @@ func NewConnection(server xiface.IServer, conn *net.TCPConn, connID uint32, msgH
 }
 
 func (c *Connection) StartWriter() {
+	// TODO reduce writer goroutine using workpool
 	fmt.Println("[Writer Goroutine is running...]")
 	defer fmt.Println(c.RemoteAddr().String(), " [conn Writer exit!]")
 
@@ -201,9 +202,6 @@ func (conn *Connection) Stop() {
 
 	conn.isClosed = true
 
-	// run regieste stop callback func
-	conn.Server.CallOnConnStop(conn)
-
 	// close tcp socket
 	conn.Conn.Close()
 
@@ -215,6 +213,9 @@ func (conn *Connection) Stop() {
 
 	// unlock until close action done
 	conn.mu.Unlock()
+
+	// run regieste stop callback func
+	conn.Server.CallOnConnStop(conn)
 }
 
 func (conn *Connection) GetTCPConnection() *net.TCPConn {
