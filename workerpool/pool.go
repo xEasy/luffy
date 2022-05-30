@@ -38,11 +38,12 @@ func NewWorkPool(name string, poolSize uint32, maxJobSize uint32) *Pool {
 
 func (p *Pool) Enqueue(job JobFunc, args ...any) {
 	var jobID string
-	uuid, err := uuid.NewRandom()
+	// NOTE use NewRandom cos New will panic if fail
+	jobUuid, err := uuid.NewRandom()
 	if err != nil {
 		jobID = "errJOBID"
 	} else {
-		jobID = uuid.String()
+		jobID = jobUuid.String()
 	}
 	p.jobQueue <- &Job{
 		ID:   jobID, // TODO random JobID
