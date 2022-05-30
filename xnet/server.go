@@ -16,35 +16,12 @@ type Server struct {
 	Port        int
 	MsgHandler  xiface.IMsgHandler
 	connManager xiface.IConManager
+	connWriter  xiface.IConnWriter
 
 	//new connection started hook func
 	OnConnStart func(conn xiface.IConnection)
 	//connection closed hook func
 	OnConnStop func(conn xiface.IConnection)
-}
-
-// SetOnConnStart set connection start callback
-func (s *Server) SetOnConnStart(hook func(xiface.IConnection)) {
-	s.OnConnStart = hook
-}
-
-// SetOnConnStop set connection stop callback
-func (s *Server) SetOnConnStop(hook func(xiface.IConnection)) {
-	s.OnConnStop = hook
-}
-
-//CallOnConnStart run conn start callback
-func (s *Server) CallOnConnStart(conn xiface.IConnection) {
-	if s.OnConnStart != nil {
-		s.OnConnStart(conn)
-	}
-}
-
-//CallOnConnStop run conn stop callback
-func (s *Server) CallOnConnStop(conn xiface.IConnection) {
-	if s.OnConnStop != nil {
-		s.OnConnStop(conn)
-	}
 }
 
 func NewServer(name string) xiface.IServer {
@@ -59,6 +36,7 @@ func NewServer(name string) xiface.IServer {
 		Port:        utils.GlobalObject.TcpPort,
 		MsgHandler:  NewMsgHandler(),
 		connManager: NewConnManager(),
+		connWriter:  NewConnectionWriter(utils.GlobalObject.WorkerPoolSize, utils.GlobalObject.MaxWriterTaskLen),
 	}
 }
 
@@ -72,6 +50,8 @@ func (s *Server) Start() {
 	go func() {
 		// 1 start msgHandler workPool
 		s.MsgHandler.StartWorkPool()
+		// 1.1 start connection writer pool
+		s.connWriter.Start()
 
 		// 2 get a tcp addr
 		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
@@ -114,6 +94,7 @@ func (s *Server) Start() {
 
 func (s *Server) Stop() {
 	fmt.Println("Server Stoping ...")
+	s.connWriter.Stop()
 	s.connManager.ClearConn()
 	fmt.Println("Server Stoped")
 }
@@ -130,4 +111,33 @@ func (s *Server) AddRouter(msgID uint32, router xiface.IRouter) {
 // Get connection manager
 func (s *Server) GetConnMgr() xiface.IConManager {
 	return s.connManager
+}
+
+// Get connection writer
+func (s *Server) GetConnWriter() xiface.IConnWriter {
+	return s.connWriter
+}
+
+// SetOnConnStart set connection start callback
+func (s *Server) SetOnConnStart(hook func(xiface.IConnection)) {
+	s.OnConnStart = hook
+}
+
+// SetOnConnStop set connection stop callback
+func (s *Server) SetOnConnStop(hook func(xiface.IConnection)) {
+	s.OnConnStop = hook
+}
+
+//CallOnConnStart run conn start callback
+func (s *Server) CallOnConnStart(conn xiface.IConnection) {
+	if s.OnConnStart != nil {
+		s.OnConnStart(conn)
+	}
+}
+
+//CallOnConnStop run conn stop callback
+func (s *Server) CallOnConnStop(conn xiface.IConnection) {
+	if s.OnConnStop != nil {
+		s.OnConnStop(conn)
+	}
 }

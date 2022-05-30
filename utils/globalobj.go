@@ -19,6 +19,9 @@ type GlobalObj struct {
 
 	WorkerPoolSize   uint32 // max worker pool size
 	MaxWorkerTaskLen uint32 // task worker queue's max len
+
+	WriterPoolSize   uint32
+	MaxWriterTaskLen uint32
 }
 
 var GlobalObject *GlobalObj
@@ -47,6 +50,9 @@ func InitConfig() {
 
 		WorkerPoolSize:   10,
 		MaxWorkerTaskLen: 1024,
+
+		WriterPoolSize:   100,
+		MaxWriterTaskLen: 1024,
 	}
 
 	GlobalObject.Reload()

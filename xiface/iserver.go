@@ -17,6 +17,9 @@ type IServer interface {
 	// Get connection manager
 	GetConnMgr() IConManager
 
+	// Get connection Writer
+	GetConnWriter() IConnWriter
+
 	// SetOnConnStart set connection start callback
 	SetOnConnStart(func(IConnection))
 
