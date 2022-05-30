@@ -8,6 +8,7 @@ import (
 type WorkersChan chan *Worker
 
 type Pool struct {
+	Name       string
 	size       uint32
 	wPool      WorkersChan
 	jobQueue   chan *Job
@@ -21,8 +22,9 @@ type Pool struct {
 	startedLock sync.Mutex
 }
 
-func NewWorkPool(poolSize uint32, maxJobSize uint32) *Pool {
+func NewWorkPool(name string, poolSize uint32, maxJobSize uint32) *Pool {
 	pool := &Pool{
+		Name:     name,
 		size:     poolSize,
 		wPool:    make(WorkersChan, poolSize),
 		jobQueue: make(chan *Job, maxJobSize),
@@ -66,7 +68,7 @@ func (p *Pool) startAndDispatch() {
 }
 
 func (p *Pool) Release() {
-	fmt.Println("WorkPool releasing, waiting all worker's job done ...")
+	fmt.Printf("[WorkPool] - %s | releasing, waiting all worker's job done ... \n", p.Name)
 
 	// 0 set release flag
 	p.releaseLock.Lock()
@@ -85,7 +87,7 @@ func (p *Pool) Release() {
 	// 2 stop all worker
 	for i := 0; i < cap(p.wPool); i++ {
 		worker := <-p.pullFreeWorker()
-		fmt.Printf("[WorkPool] free worker id: %d stoping\n", worker.id)
+		fmt.Printf("[WorkPool]- %s | free worker id: %d stoping\n", p.Name, worker.id)
 		worker.stop()
 		// waiting worker's stoped signal
 		<-worker.stoped
@@ -93,7 +95,7 @@ func (p *Pool) Release() {
 	}
 
 	// 3 close workers chan
-	fmt.Println("[WorkerPool] colse wPool")
+	fmt.Printf("[WorkPool] - %s | colse wPool \n", p.Name)
 	close(p.wPool)
 }
 

@@ -16,12 +16,12 @@ func setup() {
 }
 
 func TestNewPool(t *testing.T) {
-	pool := NewWorkPool(5, 10)
+	pool := NewWorkPool("testBatch", 5, 10)
 	pool.Start()
 	time.Sleep(time.Microsecond * 100) // let pool complete init
 
 	// inc counter with step 2
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		job := func(args ...any) {
 			prime := args[0].(int32)
 			atomic.CompareAndSwapInt32(&counter, counter, counter+prime)
@@ -33,14 +33,18 @@ func TestNewPool(t *testing.T) {
 	// release should wait job done
 	pool.Release()
 
+	if !pool.released {
+		t.Fatal("pool release fail")
+	}
+
 	// time.Sleep(time.Second * 2)
-	if counter != 20 {
+	if counter != 200 {
 		t.Fatal("pool work fail, counter: ", counter)
 	}
 }
 
 func TestNewWorker(t *testing.T) {
-	pool := NewWorkPool(100, 100)
+	pool := NewWorkPool("test", 100, 100)
 	worker := newWorker(pool, 100)
 	worker.start()
 

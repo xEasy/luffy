@@ -23,12 +23,12 @@ func (dp *Dispatcher) run() {
 			if !ok {
 				continue
 			}
-			fmt.Println("[WorkPool] get job id: ", job.ID)
+			fmt.Printf("[WorkPool] - %s | get job id: %s \n", dp.pool.Name, job.ID)
 			worker := <-dp.pool.pullFreeWorker()
 			worker.process(job)
 		case <-dp.stoped:
 			// handler existing job in queue
-			fmt.Println("[WorkPool] job queue last job id: ", len(dp.pool.jobQueue))
+			fmt.Printf("[WorkPool] - %s | job queue residue job size = %d, waiting all jobs done ... \n", dp.pool.Name, len(dp.pool.jobQueue))
 			lastCount := len(dp.pool.jobQueue)
 			if lastCount > 0 {
 				for i := 0; i < lastCount; i++ {
