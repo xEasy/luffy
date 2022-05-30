@@ -17,7 +17,8 @@ type GlobalObj struct {
 	MaxPacketSize uint32 // max data package
 	MaxConn       int    // max connections on current server
 
-	WorkerPoolSize   uint32 // max worker pool size
+	PoolSize         uint32 // msg pool size
+	WorkerPoolSize   uint32 // each msgPool's max worker pool size
 	MaxWorkerTaskLen uint32 // task worker queue's max len
 
 	WriterPoolSize   uint32
@@ -48,7 +49,8 @@ func InitConfig() {
 		MaxPacketSize: 4096,
 		MaxConn:       12000,
 
-		WorkerPoolSize:   10,
+		PoolSize:         10,
+		WorkerPoolSize:   100,
 		MaxWorkerTaskLen: 1024,
 
 		WriterPoolSize:   100,

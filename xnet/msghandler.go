@@ -4,42 +4,43 @@ import (
 	"fmt"
 
 	"github.com/xeays/luffy/utils"
+	"github.com/xeays/luffy/workerpool"
 	"github.com/xeays/luffy/xiface"
 )
 
 type MsgHandler struct {
 	Apis           map[uint32]xiface.IRouter
+	PoolSize       uint32
 	WorkerPoolSize uint32
-	TaskQueue      []chan xiface.IRequest
+	MsgPools       []*workerpool.Pool
 }
 
 func (mh *MsgHandler) StartWorkPool() {
-	for i := 0; i < int(mh.WorkerPoolSize); i++ {
-		// mallco space for current worker's queue
-		mh.TaskQueue[i] = make(chan xiface.IRequest, utils.GlobalObject.MaxWorkerTaskLen)
+	if mh.MsgPools == nil {
+		mh.MsgPools = make([]*workerpool.Pool, mh.WorkerPoolSize)
+	}
 
-		// start current worker, block until received new msg form taskqueue
-		go mh.StartOneWorker(i, mh.TaskQueue[i])
+	for i := 0; i < int(mh.PoolSize); i++ {
+		poolName := fmt.Sprintf("LuffyMsgPool:%d", i)
+		pool := workerpool.NewWorkPool(poolName, mh.WorkerPoolSize, utils.GlobalObject.MaxWorkerTaskLen)
+		mh.MsgPools[i] = pool
+		pool.Start()
 	}
 }
 
 // SendMsgToTaskQueue send msg taks to taskqueue by request id using id/mod
 func (mh *MsgHandler) SendMsgToTaskQueue(request xiface.IRequest) {
-	// TODO worker pull task when free, all task in a stack queue
-	workerID := request.GetConnection().GetConnID() % mh.WorkerPoolSize
-	fmt.Println("Add ConnID:", request.GetConnection().GetConnID(), ", requst msgID: ", request.GetMsgID(), " to workerID: ", workerID)
+	// each pool's worker pull task when free, all task in job queue
+	poolID := request.GetConnection().GetConnID() % mh.PoolSize
 
-	mh.TaskQueue[workerID] <- request
-}
+	fmt.Println("Add ConnID:", request.GetConnection().GetConnID(), ", requst msgID: ", request.GetMsgID(), " to workerID: ", poolID)
 
-func (mh *MsgHandler) StartOneWorker(workerID int, taskQueue chan xiface.IRequest) {
-	fmt.Println("Worker ID: ", workerID, " is started.")
-	for {
-		select {
-		case request := <-taskQueue:
-			mh.DoMsghandler(request)
-		}
-	}
+	pool := mh.MsgPools[poolID]
+	pool.Enqueue(func(args ...any) {
+		mh := args[0].(*MsgHandler)
+		request := args[1].(xiface.IRequest)
+		mh.DoMsghandler(request)
+	}, mh, request)
 }
 
 func (mh *MsgHandler) DoMsghandler(request xiface.IRequest) {
@@ -64,7 +65,8 @@ func (mh *MsgHandler) AddRouter(msgID uint32, router xiface.IRouter) {
 func NewMsgHandler() *MsgHandler {
 	return &MsgHandler{
 		Apis:           make(map[uint32]xiface.IRouter),
+		PoolSize:       utils.GlobalObject.PoolSize,
 		WorkerPoolSize: utils.GlobalObject.WorkerPoolSize,
-		TaskQueue:      make([]chan xiface.IRequest, utils.GlobalObject.MaxWorkerTaskLen),
+		MsgPools:       nil,
 	}
 }

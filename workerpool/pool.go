@@ -56,12 +56,15 @@ func (p *Pool) Enqueue(job JobFunc, args ...any) {
 func (wp *Pool) Start() {
 	wp.startedLock.Lock()
 	if wp.started {
+		wp.startedLock.Unlock()
 		return
 	} else {
 		wp.started = true
 	}
 	wp.startedLock.Unlock()
 	wp.startAndDispatch()
+
+	fmt.Printf("[WorkPool] - %s  started and waiting for job ...\n", wp.Name)
 }
 
 func (p *Pool) startAndDispatch() {

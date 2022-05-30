@@ -1,10 +1,16 @@
-#### Luffy
+## Luffy
 
-Luffy is an light weight TCP server
+Luffy is an light weight TCP server, rewrite from [aceld/znix](https://github.com/aceld/zinx)
 
-#### Feature
+### Feature
 
 - mutil router
 - TLV message model
 - separete read & write
-- message queue & handling worker pool 
+- message router & handling worker pool 
+
+### NewFeature
+
+- flexible workerpool
+- writer pool
+- consistent hash

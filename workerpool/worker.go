@@ -2,6 +2,7 @@ package workerpool
 
 import (
 	"fmt"
+	"time"
 )
 
 type Worker struct {
@@ -27,12 +28,16 @@ func (w *Worker) start() {
 			w.workPool.addWorker(w)
 			select {
 			case job := <-w.jobChan:
-				fmt.Printf("[Worker] WID: %d Get job ID: %s \n", w.id, job.ID)
+				fmt.Printf("[WorkPool] - %s, WID: %d processing job ID: %s \n", w.workPool.Name, w.id, job.ID)
+				now := time.Now()
 				job.Func(job.Args...)
+
+				duration := time.Now().Sub(now)
+				fmt.Printf("[WorkPool] - %s, WID: %d job ID: %s done in %s \n", w.workPool.Name, w.id, job.ID, duration)
 			case <-w.stoped:
 				close(w.jobChan)
 				w.stoped <- true
-				fmt.Printf("[Worker] WID: %d Stoped \n", w.id)
+				fmt.Printf("[WorkPool] - %s,  WID: %d Stoped \n", w.workPool.Name, w.id)
 				return
 			}
 		}
