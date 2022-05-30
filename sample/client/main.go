@@ -2,31 +2,62 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"time"
+
+	"github.com/xeays/luffy/utils"
+	"github.com/xeays/luffy/xnet"
 )
 
 func main() {
+	utils.InitConfig()
+
 	fmt.Println("Client starting")
-	conn, err := net.Dial("tcp4", "0.0.0.0:8999")
+	conn, err := net.Dial("tcp4", "0.0.0.0:8777")
 	if err != nil {
 		fmt.Println("client dial fail err: ", err)
 		return
 	}
 
 	for {
-		_, err := conn.Write([]byte("hello luffy"))
+		dp := xnet.NewDataPack()
+
+		msg, _ := dp.Pack(xnet.NewMsgPackage(1, []byte("hello luffy server")))
+
+		_, err := conn.Write(msg)
 		if err != nil {
 			fmt.Println("writ err : ", err)
 			return
 		}
 
-		buf := make([]byte, 512)
-		cnt, err := conn.Read(buf)
+		headData := make([]byte, dp.GetHeadLen())
+		_, err = io.ReadFull(conn, headData)
 		if err != nil {
-			fmt.Println("Read buf err: ", err)
+			fmt.Println("read head fail")
+			break
 		}
-		fmt.Printf("Server call back: %s, cnt: %d \n", buf, cnt)
+
+		msgHead, err := dp.UnPack(headData)
+		if err != nil {
+			fmt.Println("server unpack err: ", err)
+		}
+
+		if msgHead.GetDataLen() > 0 {
+			// read msg data
+			msg := msgHead.(*xnet.Message)
+			msg.Data = make([]byte, msg.GetDataLen())
+
+			// read bytes from io by dataLen
+			_, err := io.ReadFull(conn, msg.Data)
+			if err != nil {
+				fmt.Println("read msg data fail: ", err)
+				return
+			}
+
+			fmt.Println("====> Recv Msg ID: ", msg.Id, ", Len: ", msg.DataLen, ", data: ", string(msg.Data))
+		}
+
 		time.Sleep(time.Second)
 	}
 }

@@ -22,7 +22,7 @@ func main() {
 func (r *PingRouter) Handle(request xiface.IRequest) {
 	fmt.Println("PingRouter is called")
 
-	_, err := request.GetTCPConnection().GetTCPConnection().Write([]byte("ping ... ping .. pong .. pong .."))
+	err := request.GetTCPConnection().SendMsg(1, []byte("ping.. ping.. pong.. pong.."))
 	if err != nil {
 		fmt.Println("call back PingRouter err", err)
 	}

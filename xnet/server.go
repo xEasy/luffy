@@ -24,10 +24,10 @@ func NewServer(name string) xiface.IServer {
 	utils.GlobalObject.Reload()
 
 	return &Server{
-		Name:      name,
+		Name:      utils.GlobalObject.Name,
 		IPVersion: "tcp4",
-		IP:        "0.0.0.0",
-		Port:      8999,
+		IP:        utils.GlobalObject.Host,
+		Port:      utils.GlobalObject.TcpPort,
 	}
 }
 

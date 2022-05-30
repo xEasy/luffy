@@ -1,7 +1,9 @@
 package xnet
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/xeays/luffy/xiface"
@@ -32,16 +34,35 @@ func (conn *Connection) StartReader() {
 	defer conn.Stop()
 
 	for {
-		buf := make([]byte, 512)
-		_, err := conn.Conn.Read(buf)
-		if err != nil {
-			fmt.Println("recv buf err ", err)
+		dp := NewDataPack()
+
+		// read client msg head
+		headData := make([]byte, dp.GetHeadLen())
+		if _, err := io.ReadFull(conn.GetTCPConnection(), headData); err != nil {
+			fmt.Println("read msg head err: ", err)
 			conn.ExitBuffChan <- true
-			return
+			continue
 		}
 
+		msg, err := dp.UnPack(headData)
+		if err != nil {
+			fmt.Println("unpack msg head err: ", err)
+		}
+
+		var msgData []byte
+		if msg.GetDataLen() > 0 {
+			msgData = make([]byte, msg.GetDataLen())
+			if _, err := io.ReadFull(conn.GetTCPConnection(), msgData); err != nil {
+				fmt.Println("read msg data fail: ", err)
+				conn.ExitBuffChan <- true
+				continue
+			}
+		}
+
+		msg.SetData(msgData)
+
 		req := &Request{
-			data: buf,
+			msg:  msg,
 			conn: conn,
 		}
 
@@ -49,6 +70,26 @@ func (conn *Connection) StartReader() {
 			conn.Router.Handle(request)
 		}(req)
 	}
+}
+
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	if c.isClosed == true {
+		return errors.New("Connection closed when send msg")
+	}
+
+	dp := NewDataPack()
+	msg, err := dp.Pack(NewMsgPackage(msgId, data))
+	if err != nil {
+		fmt.Println("pack message fail: ", err)
+		return errors.New("pack error msg")
+	}
+
+	if _, err := c.Conn.Write(msg); err != nil {
+		fmt.Println("write msg id ", msgId, " error ")
+		c.ExitBuffChan <- true
+		return errors.New("conn Write error")
+	}
+	return nil
 }
 
 // Start connection to work
