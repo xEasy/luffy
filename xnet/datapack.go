@@ -5,14 +5,25 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/xeays/luffy/utils"
 	"github.com/xeays/luffy/xiface"
 )
 
-type DataPack struct{}
+type DataPack struct {
+	maxPackSize uint32
+}
 
 func NewDataPack() xiface.IDataPack {
 	return &DataPack{}
+}
+
+func NewDataPackWithMaxSize(size uint32) xiface.IDataPack {
+	dp := NewDataPack()
+	dp.SetPackSize(size)
+	return dp
+}
+
+func (dp *DataPack) SetPackSize(size uint32) {
+	dp.maxPackSize = size
 }
 
 func (dp *DataPack) GetHeadLen() uint32 {
@@ -53,7 +64,7 @@ func (dp *DataPack) UnPack(binaryData []byte) (xiface.IMessage, error) {
 		return nil, err
 	}
 
-	if utils.GlobalObject.MaxPacketSize > 0 && utils.GlobalObject.MaxPacketSize < msg.DataLen {
+	if dp.maxPackSize > 0 && msg.DataLen > dp.maxPackSize {
 		return nil, errors.New("Too large msg data recv!")
 	}
 

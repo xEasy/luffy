@@ -6,13 +6,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/xeays/luffy/utils"
 	"github.com/xeays/luffy/xnet"
 )
 
 func main() {
-	utils.InitConfig()
-
 	fmt.Println("Client starting")
 	conn, err := net.Dial("tcp4", "0.0.0.0:8777")
 	if err != nil {

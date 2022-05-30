@@ -84,7 +84,7 @@ func (conn *Connection) StartReader() {
 	defer conn.Stop()
 
 	for {
-		dp := NewDataPack()
+		dp := NewDataPackWithMaxSize(utils.GlobalObject.MaxPacketSize)
 
 		// read client msg head
 		headData := make([]byte, dp.GetHeadLen())
@@ -129,7 +129,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 		return errors.New("Connection closed when send msg")
 	}
 
-	dp := NewDataPack()
+	dp := NewDataPackWithMaxSize(utils.GlobalObject.MaxPacketSize)
 	msg, err := dp.Pack(NewMsgPackage(msgId, data))
 	if err != nil {
 		fmt.Println("pack message fail: ", err)
