@@ -117,6 +117,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 		c.mu.Unlock()
 		return errors.New("Connection closed when send msg")
 	}
+	c.mu.Unlock()
 
 	dp := NewDataPackWithMaxSize(utils.GlobalObject.MaxPacketSize)
 	msg, err := dp.Pack(NewMsgPackage(msgId, data))
@@ -127,13 +128,6 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 
 	// write to client throught writer pool
 	c.Server.GetConnWriter().Write(c, msg)
-
-	/*
-		put here to prevent dead clock
-		cos stop() action will kill writer and block msgChan
-		TODO check again
-	*/
-	c.mu.Unlock()
 
 	return nil
 }
