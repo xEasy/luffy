@@ -30,8 +30,11 @@ func (w *Worker) start() {
 			case job := <-w.jobChan:
 				fmt.Printf("[WorkPool] - %s, WID: %d processing job ID: %s \n", w.workPool.Name, w.id, job.ID)
 				now := time.Now()
-				job.Func(job.Args...)
-
+				func() {
+					// recover if job panic
+					defer Recovery()
+					job.Func(job.Args...)
+				}()
 				duration := time.Now().Sub(now)
 				fmt.Printf("[WorkPool] - %s, WID: %d job ID: %s done in %s \n", w.workPool.Name, w.id, job.ID, duration)
 			case <-w.stoped:
