@@ -31,6 +31,9 @@ type Connection struct {
 // set propertity value
 func (c *Connection) SetProperty(key string, value any) {
 	c.ppLock.Lock()
+	if c.properties == nil {
+		c.properties = make(map[string]any)
+	}
 	c.properties[key] = value
 	c.ppLock.Unlock()
 }
@@ -57,6 +60,7 @@ func NewConnection(server xiface.IServer, conn *net.TCPConn, connID uint32, msgH
 		ConnID:     connID,
 		isClosed:   false,
 		MsgHandler: msgHandler,
+		properties: nil,
 		msgChan:    make(chan []byte),
 	}
 
