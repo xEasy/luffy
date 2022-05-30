@@ -12,5 +12,5 @@ type IServer interface {
 	Serve()
 
 	// router func
-	AddRouter(router IRouter)
+	AddRouter(msgID uint32, router IRouter)
 }

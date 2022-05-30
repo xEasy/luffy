@@ -11,11 +11,11 @@ import (
 )
 
 type Server struct {
-	Name      string
-	IPVersion string
-	IP        string
-	Port      int
-	Router    xiface.IRouter
+	Name       string
+	IPVersion  string
+	IP         string
+	Port       int
+	MsgHandler xiface.IMsgHandler
 }
 
 func NewServer(name string) xiface.IServer {
@@ -24,10 +24,11 @@ func NewServer(name string) xiface.IServer {
 	utils.GlobalObject.Reload()
 
 	return &Server{
-		Name:      utils.GlobalObject.Name,
-		IPVersion: "tcp4",
-		IP:        utils.GlobalObject.Host,
-		Port:      utils.GlobalObject.TcpPort,
+		Name:       utils.GlobalObject.Name,
+		IPVersion:  "tcp4",
+		IP:         utils.GlobalObject.Host,
+		Port:       utils.GlobalObject.TcpPort,
+		MsgHandler: NewMsgHandler(),
 	}
 }
 
@@ -42,7 +43,7 @@ func callbackToClient(conn *net.TCPConn, data []byte, cnt int) error {
 
 func (s *Server) Start() {
 	fmt.Printf("[Luffy] Server Listening at IP: %s, Port: %d Starging \n", s.IP, s.Port)
-	fmt.Printf("[Luffy] Version: %s, MaxConn: %d, MaxPacketSize: %d",
+	fmt.Printf("[Luffy] Version: %s, MaxConn: %d, MaxPacketSize: %d \n",
 		utils.GlobalObject.Version,
 		utils.GlobalObject.MaxConn,
 		utils.GlobalObject.MaxPacketSize,
@@ -73,7 +74,7 @@ func (s *Server) Start() {
 
 			// TODO close conn if cid greater than maxID
 
-			dealConn := NewConnection(conn, cid, s.Router)
+			dealConn := NewConnection(conn, cid, s.MsgHandler)
 
 			cid++
 
@@ -90,8 +91,7 @@ func (s *Server) Serve() {
 	s.Start()
 }
 
-func (s *Server) AddRouter(router xiface.IRouter) {
-	s.Router = router
-
+func (s *Server) AddRouter(msgID uint32, router xiface.IRouter) {
+	s.MsgHandler.AddRouter(msgID, router)
 	fmt.Println("AddRouter succ! ")
 }

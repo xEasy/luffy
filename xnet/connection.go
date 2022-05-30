@@ -13,16 +13,16 @@ type Connection struct {
 	ConnID       uint32
 	Conn         *net.TCPConn
 	isClosed     bool
-	Router       xiface.IRouter
 	ExitBuffChan chan bool
+	MsgHandler   xiface.IMsgHandler
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, router xiface.IRouter) xiface.IConnection {
+func NewConnection(conn *net.TCPConn, connID uint32, msgHandler xiface.IMsgHandler) xiface.IConnection {
 	c := &Connection{
 		Conn:         conn,
 		ConnID:       connID,
 		isClosed:     false,
-		Router:       router,
+		MsgHandler:   msgHandler,
 		ExitBuffChan: make(chan bool, 1),
 	}
 	return c
@@ -61,14 +61,12 @@ func (conn *Connection) StartReader() {
 
 		msg.SetData(msgData)
 
-		req := &Request{
+		req := Request{
 			msg:  msg,
 			conn: conn,
 		}
 
-		go func(request xiface.IRequest) {
-			conn.Router.Handle(request)
-		}(req)
+		go conn.MsgHandler.DoMsghandler(&req)
 	}
 }
 
