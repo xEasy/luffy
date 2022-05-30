@@ -171,8 +171,8 @@ func (conn *Connection) Start() {
 	// create goroutinue to write
 	go conn.StartWriter()
 
-	// TODO client connection start callback
-
+	// client connection start callback
+	conn.Server.CallOnConnStart(conn)
 }
 
 func (conn *Connection) Stop() {
@@ -181,6 +181,7 @@ func (conn *Connection) Stop() {
 	}
 
 	conn.isClosed = true
+	conn.Server.CallOnConnStop(conn)
 
 	// TODO run regieste stop callback func
 

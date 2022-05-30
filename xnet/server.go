@@ -16,6 +16,35 @@ type Server struct {
 	Port        int
 	MsgHandler  xiface.IMsgHandler
 	connManager xiface.IConManager
+
+	//new connection started hook func
+	OnConnStart func(conn xiface.IConnection)
+	//connection closed hook func
+	OnConnStop func(conn xiface.IConnection)
+}
+
+// SetOnConnStart set connection start callback
+func (s *Server) SetOnConnStart(hook func(xiface.IConnection)) {
+	s.OnConnStart = hook
+}
+
+// SetOnConnStop set connection stop callback
+func (s *Server) SetOnConnStop(hook func(xiface.IConnection)) {
+	s.OnConnStop = hook
+}
+
+//CallOnConnStart run conn start callback
+func (s *Server) CallOnConnStart(conn xiface.IConnection) {
+	if s.OnConnStart != nil {
+		s.OnConnStart(conn)
+	}
+}
+
+//CallOnConnStop run conn stop callback
+func (s *Server) CallOnConnStop(conn xiface.IConnection) {
+	if s.OnConnStop != nil {
+		s.OnConnStop(conn)
+	}
 }
 
 func NewServer(name string) xiface.IServer {
