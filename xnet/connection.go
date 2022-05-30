@@ -11,16 +11,16 @@ type Connection struct {
 	ConnID       uint32
 	Conn         *net.TCPConn
 	isClosed     bool
-	HandleAPI    xiface.HandFunc
+	Router       xiface.IRouter
 	ExitBuffChan chan bool
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, callback_api xiface.HandFunc) xiface.IConnection {
+func NewConnection(conn *net.TCPConn, connID uint32, router xiface.IRouter) xiface.IConnection {
 	c := &Connection{
 		Conn:         conn,
 		ConnID:       connID,
 		isClosed:     false,
-		HandleAPI:    callback_api,
+		Router:       router,
 		ExitBuffChan: make(chan bool, 1),
 	}
 	return c
@@ -33,18 +33,21 @@ func (conn *Connection) StartReader() {
 
 	for {
 		buf := make([]byte, 512)
-		cnt, err := conn.Conn.Read(buf)
+		_, err := conn.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("recv buf err ", err)
 			conn.ExitBuffChan <- true
 			return
 		}
 
-		if err := conn.HandleAPI(conn.Conn, buf, cnt); err != nil {
-			fmt.Println("connID ", conn.ConnID, " handle is error")
-			conn.ExitBuffChan <- true
-			return
+		req := &Request{
+			data: buf,
+			conn: conn,
 		}
+
+		go func(request xiface.IRequest) {
+			conn.Router.Handle(request)
+		}(req)
 	}
 }
 

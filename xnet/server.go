@@ -14,6 +14,7 @@ type Server struct {
 	IPVersion string
 	IP        string
 	Port      int
+	Router    xiface.IRouter
 }
 
 func NewServer(name string) xiface.IServer {
@@ -62,7 +63,7 @@ func (s *Server) Start() {
 
 			// TODO close conn if cid greater than maxID
 
-			dealConn := NewConnection(conn, cid, callbackToClient)
+			dealConn := NewConnection(conn, cid, s.Router)
 
 			cid++
 
@@ -77,4 +78,10 @@ func (s *Server) Stop() {
 
 func (s *Server) Serve() {
 	s.Start()
+}
+
+func (s *Server) AddRouter(router xiface.IRouter) {
+	s.Router = router
+
+	fmt.Println("AddRouter succ! ")
 }
