@@ -76,9 +76,6 @@ func (s *Server) Start() {
 
 			dealConn := NewConnection(s, conn, cid, s.MsgHandler)
 
-			// add client connection to connManager
-			s.connManager.Add(dealConn)
-
 			cid++
 
 			go dealConn.Start()

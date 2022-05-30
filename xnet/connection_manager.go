@@ -44,6 +44,8 @@ func (c *ConnManager) ClearConn() {
 	c.connLock.Lock()
 	for connID, conn := range c.connections {
 		conn.Stop()
+
+		// remove conn from connManger
 		delete(c.connections, connID)
 	}
 	c.connLock.Unlock()

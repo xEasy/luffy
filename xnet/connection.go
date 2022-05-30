@@ -1,6 +1,7 @@
 package xnet
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,13 +13,15 @@ import (
 )
 
 type Connection struct {
-	Server       xiface.IServer
-	ConnID       uint32
-	Conn         *net.TCPConn
-	isClosed     bool
-	ExitBuffChan chan bool
-	MsgHandler   xiface.IMsgHandler
-	msgChan      chan []byte
+	Server     xiface.IServer
+	ConnID     uint32
+	Conn       *net.TCPConn
+	isClosed   bool
+	MsgHandler xiface.IMsgHandler
+	msgChan    chan []byte
+
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	// connection properties
 	properties map[string]any
@@ -49,14 +52,16 @@ func (c *Connection) RemoveProperty(key string) {
 
 func NewConnection(server xiface.IServer, conn *net.TCPConn, connID uint32, msgHandler xiface.IMsgHandler) xiface.IConnection {
 	c := &Connection{
-		Server:       server,
-		Conn:         conn,
-		ConnID:       connID,
-		isClosed:     false,
-		MsgHandler:   msgHandler,
-		ExitBuffChan: make(chan bool, 1),
-		msgChan:      make(chan []byte),
+		Server:     server,
+		Conn:       conn,
+		ConnID:     connID,
+		isClosed:   false,
+		MsgHandler: msgHandler,
+		msgChan:    make(chan []byte),
 	}
+
+	// add client connection to connManager
+	c.Server.GetConnMgr().Add(c)
 
 	return c
 }
@@ -72,7 +77,7 @@ func (c *Connection) StartWriter() {
 				fmt.Println("Send data err: ", err, " Conn Writer exit!")
 				return
 			}
-		case <-c.ExitBuffChan:
+		case <-c.ctx.Done():
 			return
 		}
 	}
@@ -84,44 +89,56 @@ func (conn *Connection) StartReader() {
 	defer conn.Stop()
 
 	for {
-		dp := NewDataPackWithMaxSize(utils.GlobalObject.MaxPacketSize)
-
-		// read client msg head
-		headData := make([]byte, dp.GetHeadLen())
-		if _, err := io.ReadFull(conn.GetTCPConnection(), headData); err != nil {
-			fmt.Println("read msg head err: ", err)
-			conn.ExitBuffChan <- true
-			continue
-		}
-
-		msg, err := dp.UnPack(headData)
-		if err != nil {
-			fmt.Println("unpack msg head err: ", err)
-		}
-
-		var msgData []byte
-		if msg.GetDataLen() > 0 {
-			msgData = make([]byte, msg.GetDataLen())
-			if _, err := io.ReadFull(conn.GetTCPConnection(), msgData); err != nil {
-				fmt.Println("read msg data fail: ", err)
-				conn.ExitBuffChan <- true
-				continue
+		select {
+		case <-conn.ctx.Done():
+			return
+		default:
+			if err := conn.read(); err != nil {
+				// quit when read err
+				return
 			}
 		}
+	}
+}
 
-		msg.SetData(msgData)
+func (conn *Connection) read() error {
+	dp := NewDataPackWithMaxSize(utils.GlobalObject.MaxPacketSize)
 
-		req := Request{
-			msg:  msg,
-			conn: conn,
-		}
+	// read client msg head
+	headData := make([]byte, dp.GetHeadLen())
+	if _, err := io.ReadFull(conn.GetTCPConnection(), headData); err != nil {
+		fmt.Println("read msg head err: ", err)
+		return err
+	}
 
-		if utils.GlobalObject.WorkerPoolSize > 0 {
-			conn.MsgHandler.SendMsgToTaskQueue(&req)
-		} else {
-			go conn.MsgHandler.DoMsghandler(&req)
+	msg, err := dp.UnPack(headData)
+	if err != nil {
+		fmt.Println("unpack msg head err: ", err)
+		return err
+	}
+
+	var msgData []byte
+	if msg.GetDataLen() > 0 {
+		msgData = make([]byte, msg.GetDataLen())
+		if _, err := io.ReadFull(conn.GetTCPConnection(), msgData); err != nil {
+			fmt.Println("read msg data fail: ", err)
+			return err
 		}
 	}
+
+	msg.SetData(msgData)
+
+	req := Request{
+		msg:  msg,
+		conn: conn,
+	}
+
+	if utils.GlobalObject.WorkerPoolSize > 0 {
+		conn.MsgHandler.SendMsgToTaskQueue(&req)
+	} else {
+		go conn.MsgHandler.DoMsghandler(&req)
+	}
+	return nil
 }
 
 func (c *Connection) SendMsg(msgId uint32, data []byte) error {
@@ -144,19 +161,14 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 
 // Start connection to work
 func (conn *Connection) Start() {
-
+	conn.ctx, conn.cancel = context.WithCancel(context.Background())
 	// create goroutinue to handle connection
 	go conn.StartReader()
 	// create goroutinue to write
 	go conn.StartWriter()
 
-	for {
-		select {
-		case <-conn.ExitBuffChan:
-			// recv exit signal and stop block
-			return
-		}
-	}
+	// TODO client connection start callback
+
 }
 
 func (conn *Connection) Stop() {
@@ -172,13 +184,12 @@ func (conn *Connection) Stop() {
 	conn.Conn.Close()
 
 	// notify exit message subscriber
-	conn.ExitBuffChan <- true
+	conn.cancel()
 
-	// remove conn from connManger
+	// remove conn from connManager
 	conn.Server.GetConnMgr().Remove(conn)
 
 	// close conn's channel
-	close(conn.ExitBuffChan)
 	close(conn.msgChan)
 }
 
