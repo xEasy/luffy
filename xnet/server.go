@@ -82,7 +82,7 @@ func (s *Server) Start() {
 
 		listenner, err := net.ListenTCP(s.IPVersion, addr)
 		if err != nil {
-			fmt.Println("ListenTCP Fail with err: ", err)
+			panic(err)
 		}
 
 		// TODO id generate with func
