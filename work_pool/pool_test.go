@@ -1,7 +1,6 @@
 package workerpool
 
 import (
-	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,18 +22,16 @@ func setup() {
 func TestNewPool(t *testing.T) {
 	pool := NewWorkPool(5, 10)
 	pool.Start()
-	time.Sleep(time.Second * 1) // let pool complete init
+	time.Sleep(time.Microsecond * 100) // let pool complete init
 
 	// inc counter with step 2
 	for i := 0; i < 10; i++ {
-		pool.Enqueue(Job{
-			ID: fmt.Sprint(i),
-			Func: func(args ...interface{}) {
-				prime := args[0].(int32)
-				atomic.CompareAndSwapInt32(&counter, counter, counter+prime)
-			},
-			Args: []any{int32(2)},
-		})
+		job := func(args ...any) {
+			prime := args[0].(int32)
+			atomic.CompareAndSwapInt32(&counter, counter, counter+prime)
+		}
+
+		pool.Enqueue(job, int32(2))
 	}
 
 	// release should wait job done

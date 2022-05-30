@@ -27,18 +27,23 @@ func NewWorkPool(poolSize uint32, maxJobSize uint32) *Pool {
 		wPool:    make(WorkersChan, poolSize),
 		jobQueue: make(chan Job, maxJobSize),
 		released: false,
+		started:  false,
 	}
 	return pool
 }
 
-func (p *Pool) Enqueue(job Job) {
-	p.jobQueue <- job
+func (p *Pool) Enqueue(job JobFunc, args ...any) {
+	p.jobQueue <- Job{
+		ID:   "jobId", // TODO random JobID
+		Func: job,
+		Args: args,
+	}
 }
 
 // Start a worker pool
 func (wp *Pool) Start() {
 	wp.startedLock.Lock()
-	if wp.started == true {
+	if wp.started {
 		return
 	} else {
 		wp.started = true
@@ -65,7 +70,11 @@ func (p *Pool) Release() {
 
 	// 0 set release flag
 	p.releaseLock.Lock()
-	p.released = true
+	if p.released {
+		return
+	} else {
+		p.released = true
+	}
 	p.releaseLock.Unlock()
 
 	// 1 close jobQueue to prevent new job processing
