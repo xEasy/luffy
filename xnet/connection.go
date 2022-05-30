@@ -182,6 +182,13 @@ func (conn *Connection) Start() {
 
 	// client connection start callback
 	conn.Server.CallOnConnStart(conn)
+
+	select {
+	case <-conn.ctx.Done():
+		// remove conn from connManager
+		conn.Server.GetConnMgr().Remove(conn)
+		return
+	}
 }
 
 func (conn *Connection) Stop() {
@@ -202,9 +209,6 @@ func (conn *Connection) Stop() {
 
 	// notify exit message subscriber
 	conn.cancel()
-
-	// remove conn from connManager
-	conn.Server.GetConnMgr().Remove(conn)
 
 	// close conn's channel
 	close(conn.msgChan)
