@@ -2,6 +2,7 @@
 package xnet
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -24,6 +25,15 @@ func NewServer(name string) xiface.IServer {
 	}
 }
 
+func callbackToClient(conn *net.TCPConn, data []byte, cnt int) error {
+	fmt.Println("[conn handler] callbackToClient ...")
+	if _, err := conn.Write(data[:cnt]); err != nil {
+		fmt.Println("write back buf error: ", err)
+		return errors.New("callbackToClient error")
+	}
+	return nil
+}
+
 func (s *Server) Start() {
 	fmt.Printf("[Luffy] Server Listening at IP: %s, Port: %d Starging \n", s.IP, s.Port)
 	go func() {
@@ -38,6 +48,11 @@ func (s *Server) Start() {
 			fmt.Println("ListenTCP Fail with err: ", err)
 		}
 
+		// TODO id generate with func
+		var cid uint32
+		cid = 0
+
+		// start server listen
 		for {
 			conn, err := listenner.AcceptTCP()
 			if err != nil {
@@ -45,21 +60,13 @@ func (s *Server) Start() {
 				continue
 			}
 
-			go func() {
-				for {
-					buf := make([]byte, 512)
-					cnt, err := conn.Read(buf)
-					if err != nil {
-						fmt.Println("recv buf err ", err)
-						continue
-					}
+			// TODO close conn if cid greater than maxID
 
-					if _, err := conn.Write(buf[:cnt]); err != nil {
-						fmt.Println("Write buf err: ", err)
-						continue
-					}
-				}
-			}()
+			dealConn := NewConnection(conn, cid, callbackToClient)
+
+			cid++
+
+			go dealConn.Start()
 		}
 	}()
 }

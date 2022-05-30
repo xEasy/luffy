@@ -91,5 +91,5 @@ func (conn *Connection) GetConnID() uint32 {
 }
 
 func (conn *Connection) RemoteAddr() net.Addr {
-	return conn.RemoteAddr()
+	return conn.Conn.RemoteAddr()
 }

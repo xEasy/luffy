@@ -9,3 +9,5 @@ type IConnection interface {
 	GetConnID() uint32
 	RemoteAddr() net.Addr
 }
+
+type HandFunc func(*net.TCPConn, []byte, int) error
