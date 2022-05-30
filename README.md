@@ -129,21 +129,21 @@ func main() {
 - config file path: `conf/luffy.json`
 - example:
 
-```json
+```ruby
 {
   "Name": "Demo server",
   "Host": "0.0.0.0",
   "TcpPort": 8777,
   "MaxConn": 30
-	"MaxPacketSize": 1024, // max data package
-	MaxCon: 65555,    // max connections on current server
+  "MaxPacketSize": 1024, // max data package
+  "MaxCon": 65555,    // max connections on current server
 
-	PoolSize: 10, // msgPools size
-	WorkerPoolSize: 100 // each msgPool's max worker pool size
-	MaxWorkerTaskLen: 1024 // each msgPool's task queue buf size
+  "PoolSize": 10, // msgPools size
+  "WorkerPoolSize": 100 // each msgPool's max worker pool size
+  "MaxWorkerTaskLen": 1024 // each msgPool's task queue buf size
 
-	WriterPoolSize: 10, // writer pool's worker size
-	MaxWriterTaskLen: 1024, // writer pool's task queue buf size
+  "WriterPoolSize": 10, // writer pool's worker size
+  "MaxWriterTaskLen": 1024, // writer pool's task queue buf size
 }
 ```
 
