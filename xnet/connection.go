@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 
 	"github.com/xeays/luffy/utils"
 	"github.com/xeays/luffy/xiface"
@@ -18,6 +19,32 @@ type Connection struct {
 	ExitBuffChan chan bool
 	MsgHandler   xiface.IMsgHandler
 	msgChan      chan []byte
+
+	// connection properties
+	properties map[string]any
+	ppLock     sync.RWMutex
+}
+
+// set propertity value
+func (c *Connection) SetProperty(key string, value any) {
+	c.ppLock.Lock()
+	c.properties[key] = value
+	c.ppLock.Unlock()
+}
+
+// get propertity value
+func (c *Connection) GetProperty(key string) (any, bool) {
+	c.ppLock.RLock()
+	value, ok := c.properties[key]
+	c.ppLock.RUnlock()
+	return value, ok
+}
+
+// remove connection's property
+func (c *Connection) RemoveProperty(key string) {
+	c.ppLock.Lock()
+	delete(c.properties, key)
+	c.ppLock.Unlock()
 }
 
 func NewConnection(server xiface.IServer, conn *net.TCPConn, connID uint32, msgHandler xiface.IMsgHandler) xiface.IConnection {
@@ -30,6 +57,7 @@ func NewConnection(server xiface.IServer, conn *net.TCPConn, connID uint32, msgH
 		ExitBuffChan: make(chan bool, 1),
 		msgChan:      make(chan []byte),
 	}
+
 	return c
 }
 
